@@ -254,7 +254,11 @@ setup_dict = dict(
     ],
     packages=find_packages(exclude=(TESTS_DIRECTORY,)),
     install_requires=[
-        # your module dependencies
+      'kafka',
+      'portalocker',
+      'boto3',
+      'setproctitle',
+      'psutil'
     ] + python_version_specific_requires,
     # Allow tests to be run with `python setup.py test'.
     tests_require=[
@@ -266,7 +270,8 @@ setup_dict = dict(
     zip_safe=False,  # don't use eggs
     entry_points={
         'console_scripts': [
-            'kafkatos3_cli = kafkatos3.main:entry_point'
+            'kafkatos3 = kafkatos3.main:entry_point',
+            'kafkatos3_rotate = kafkatos3.rotate:entry_point'
         ],
         # if you have a gui, use this
         # 'gui_scripts': [

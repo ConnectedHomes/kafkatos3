@@ -1,0 +1,64 @@
+[main]
+
+log.level = INFO
+
+# needs to be persistent and resumes from this
+working_directory = /home/ubuntu/kafkatos3/data
+
+
+[consumer]
+
+# Number of kafka consumers to run
+consumer_processes = 1
+
+kafka_bootstrap = kafka:9092
+kafka_consumer_group = kafkatos3
+
+# this setting can be :
+#   earliest: automatically reset the offset to the earliest offset
+#   latest: automatically reset the offset to the latest offset
+#   none: throw exception to the consumer if no previous offset is found for the consumer's group
+#   anything else: throw exception to the consumer.
+kafka_auto_offset_reset = latest
+
+consumer_nice_level = 15
+
+topic_whitelist = test
+
+# max age of file
+max_age_seconds = 1800
+
+# Which consumer to use :
+# KafkaPythonConsumer : https://github.com/dpkp/kafka-python
+# KafkaConfluentConsumer : https://github.com/confluentinc/confluent-kafka-python
+#
+# note: for the confluent consumer you will need to install librdkafka and pip install confluent_kafka
+
+consumer_class = KafkaPythonConsumer
+
+
+[compression]
+
+# Check for files to compress every x seconds
+compression_check_interval = 600
+# number of simultaneous compressions
+compressor_workers = 1
+
+compression_nice_level = 10
+
+
+[s3]
+
+# Check for files to upload every x seconds
+s3upload_check_interval = 600
+# number of simultaneous s3 uploads
+s3uploader_workers = 1
+
+# S3 Bucket to upload to
+s3_bucket_name = my_bucket
+# AWS Keys. Will use IAM role if left blank or environment variables
+s3_access_key = ""
+s3_secret_key = ""
+
+topic_whitelist = test
+
