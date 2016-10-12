@@ -271,7 +271,8 @@ setup_dict = dict(
     entry_points={
         'console_scripts': [
             'kafkatos3 = kafkatos3.main:entry_point',
-            'kafkatos3_rotate = kafkatos3.rotate:entry_point'
+            'kafkatos3_rotate = kafkatos3.rotate:entry_point',
+            'kafkatos3_parse = kafkatos3.parse:entry_point'
         ],
         # if you have a gui, use this
         # 'gui_scripts': [
