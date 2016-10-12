@@ -14,7 +14,7 @@ Initially we started looking at programs like secor and bifrost to do this but f
 Installation Instructions
 =========================
 
-- pip install kafkatos3 (tba)
+- pip install kafkatos3
 - copy config/kafkatos3.cfg.example to kafkatos3.cfg
 - edit kafkatos3.cfg and put in your settings
 - Start kafkatos3 with:
