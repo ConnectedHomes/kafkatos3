@@ -40,3 +40,7 @@ pip-log.txt
 # vim files
 *.swp
 
+# ignore any copied in mak files
+*.mak
+
+
