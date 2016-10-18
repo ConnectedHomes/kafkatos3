@@ -61,25 +61,25 @@ class KafkaConfluentConsumer():
 
   def run(self):
 
-    nice_level = self.config.get("main", "consumer_nice_level")
+    nice_level = self.config.get("consumer", "consumer_nice_level")
     p = psutil.Process(os.getpid())
     p.nice(int(nice_level))
 
-    bootstrap_server = self.config.get('main', 'kafka_bootstrap')
-    consumer_group = self.config.get('main', 'kafka_consumer_group')
+    bootstrap_server = self.config.get('consumer', 'kafka_bootstrap')
+    consumer_group = self.config.get('consumer', 'kafka_consumer_group')
 
     setproctitle("[consumer"+self.consumer_id+"] "+getproctitle())
 
     while self.shutting_down == False:
       try:
-        offset_reset = self.config.get('main', 'kafka_auto_offset_reset')
+        offset_reset = self.config.get('consumer', 'kafka_auto_offset_reset')
 
         conf = {'bootstrap.servers': bootstrap_server, 'group.id': consumer_group,
             'default.topic.config': {'auto.offset.reset': offset_reset}}
 
         self.consumer = Consumer(**conf)
 
-        topic_whitelist = self.config.get('main', 'topic_whitelist')
+        topic_whitelist = self.config.get('consumer', 'topic_whitelist')
         self.logger.info("Topic list is "+topic_whitelist)
 
         self.consumer.subscribe(topic_whitelist.split(","), on_assign=on_assign, on_revoke=on_revoke)
@@ -154,7 +154,7 @@ class KafkaConfluentConsumer():
      if current_time<(self.last_rotation_check+self.check_for_rotation_secs):
        return
      for k in self.partitions:
-       if current_time>(int(self.partitions[k].header.get_starttime())+int(self.config.get("main", "max_age_seconds"))):
+       if current_time>(int(self.partitions[k].header.get_starttime())+int(self.config.get("consumer", "max_age_seconds"))):
          self.rotate_partition(k) 
 
   def rotate_partition(self,partition):
