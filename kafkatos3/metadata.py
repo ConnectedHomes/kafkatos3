@@ -8,7 +8,7 @@ Information describing the project.
 package = 'kafkatos3'
 project = "Kafka to S3"
 project_no_spaces = project.replace(' ', '')
-version = '0.1.2'
+version = '0.1.3'
 description = 'Archive kafka messages to S3'
 authors = ['Ben Corlett', 'Paul Makkar']
 authors_string = ', '.join(authors)
