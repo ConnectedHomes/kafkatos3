@@ -1,115 +1,121 @@
-from multiprocessing import Process, Pool
+'''S3 uploader module'''
+
 import os
 import time
 import signal
 import sys
-import subprocess
 import traceback
+from multiprocessing import Pool
+
 import boto3
-from setproctitle import setproctitle, getproctitle
+# This module seems to have some issues. pylint ignore them
+from setproctitle import setproctitle, getproctitle  # pylint: disable=E0611
+# pylint: disable=W0703
 
-# TODO: come up with a better solition here
-log = None
-conf = None
+class S3Uploader(object):
+    '''class for uploading files to s3'''
 
-def exit_gracefully(signum, frame):
-  sys.exit(0)
+    def __init__(self, config, logger):
+        '''constructor'''
+        self.config = config
+        self.logger = logger
+        self.pool = None
 
-def init_worker():
-  signal.signal(signal.SIGINT, exit_gracefully)
-  signal.signal(signal.SIGTERM, exit_gracefully)
+    def exit_gracefully(self, signum, frame):
+        '''callback to exit gracefully for the main process'''
+        self.logger.info("Shutting down S3Uploader, signum %d, frame %d." % (signum, frame))
+        if self.pool != None:
+            self.logger.info("Terminate the s3uploader worker pool")
+            self.pool.terminate()
+            self.pool.join()
+        sys.exit(0)
 
-  setproctitle("[s3uploadworker] "+getproctitle())
+    def run(self):
+        '''main executor'''
+        def exit_gracefully(signum, frame):
+            '''callback to exit gracefully for a pool thread'''
+            self.logger.info("Shutting down S3Uploader, signum %d, frame %d."% (signum, frame))
+            sys.exit(0)
 
-def upload_file(filename):
-  try:
-    upload_file_to_s3(filename)
-  except KeyboardInterrupt:
-    raise KeyboardInterruptError()
-  except Exception as e:
-    log.error("Unexpected error: "+str(e))
-    log.error(traceback.format_exc())
-    raise e
+        def init_worker():
+            '''callback function to initialise a pool worker'''
+            signal.signal(signal.SIGINT, exit_gracefully)
+            signal.signal(signal.SIGTERM, exit_gracefully)
 
-def upload_file_to_s3(filename):
-  log.info("Uploading file: "+filename+" to s3")
+            setproctitle("[s3uploadworker] " + getproctitle())
 
-  working_dir = conf.get("main", "working_directory")
+        def upload_file(filename):
+            '''upload file'''
+            try:
+                upload_file_to_s3(filename)
+            except KeyboardInterrupt:
+                raise
+            except Exception as exe:
+                self.logger.error("Unexpected error: " + str(exe))
+                self.logger.error(traceback.format_exc())
+                raise exe
 
-  s3_key = "kafkatos3"+filename.replace(working_dir+"/tos3", "")
+        def upload_file_to_s3(filename):
+            '''upload file to s3'''
+            self.logger.info("Uploading file: " + filename + " to s3")
 
-  log.info("S3 key is "+s3_key)
+            working_dir = self.config.get("main", "working_directory")
 
-  if conf.get("s3", "s3_access_key") != "":
-    access_key = conf.get("s3", "s3_access_key")
-    secret_key = conf.get("s3", "s3_secret_key")
-    c = boto3.client("s3", aws_access_key_id=access_key, aws_secret_access_key=s3_secret_key) 
-  else:
-    c = boto3.client("s3")
+            s3_key = "kafkatos3" + filename.replace(working_dir + "/tos3", "")
 
-  bucket = conf.get("s3","s3_bucket_name")
+            self.logger.info("S3 key is " + s3_key)
 
-  c.upload_file(filename, bucket, s3_key)
+            if self.config.get("s3", "s3_access_key") != "":
+                access_key = self.config.get("s3", "s3_access_key")
+                secret_key = self.config.get("s3", "s3_secret_key")
+                s3client = boto3.client("s3", aws_access_key_id=access_key,
+                                        aws_secret_access_key=secret_key)
+            else:
+                s3client = boto3.client("s3")
 
-  os.remove(filename)
+            bucket = self.config.get("s3", "s3_bucket_name")
 
+            s3client.upload_file(filename, bucket, s3_key)
 
-class S3Uploader():
-
-  def __init__(self, config, logger):
-    global log
-    global conf
-    log = logger
-    conf = config
-    self.config = config
-    self.logger = logger
-    self.pool = None
-
-
-  def exit_gracefully(self, signum, frame):
-    self.logger.info("Shutting down S3Uploader")
-    if self.pool != None:
-      self.logger.info("Terminate the s3uploader worker pool")
-      self.pool.terminate()
-      self.pool.join()
-    sys.exit(0)
-
-
-  def run(self):
-    self.logger.info("S3Uploader process starting up")
-    self.pool = Pool(int(self.config.get("s3", "s3uploader_workers")), init_worker)
-
-    setproctitle("[s3upload] "+getproctitle())
-
-    signal.signal(signal.SIGINT, self.exit_gracefully)
-    signal.signal(signal.SIGTERM, self.exit_gracefully)
-
-    try:
-      while True:
-        tos3_dir = os.path.join(self.config.get("main", "working_directory"),"tos3")
-        files = self.get_files(tos3_dir, ".gz")
-        if files:
-          self.pool.map(upload_file, files)
-
-        time.sleep(float(self.config.get("s3", "s3upload_check_interval")))
-    except KeyboardInterrupt:
-      self.pool.terminate()
-      self.pool.join()
-    except Exception as e:
-      log.error("Unexpected error: "+str(e))
-      log.error(traceback.format_exc())
-      self.pool.terminate()
-      self.pool.join()
-    sys.exit(0)
+            os.remove(filename)
 
 
-  def get_files(self, directory, extension):
-    file_list = []
-    for dirpath, dirs, files in os.walk(directory):
-      for filename in files:
-        fname = os.path.join(dirpath,filename)
-        filename, file_extension = os.path.splitext(fname)
-        if file_extension == extension:
-          file_list.append(fname)
-    return file_list
+        self.logger.info("S3Uploader process starting up")
+        self.pool = Pool(
+            int(self.config.get("s3", "s3uploader_workers")), init_worker)
 
+        setproctitle("[s3upload] " + getproctitle())
+
+        signal.signal(signal.SIGINT, self.exit_gracefully)
+        signal.signal(signal.SIGTERM, self.exit_gracefully)
+
+        try:
+            while True:
+                tos3_dir = os.path.join(self.config.get(
+                    "main", "working_directory"), "tos3")
+                files = self.get_files(tos3_dir, ".gz")
+                if files:
+                    self.pool.map(upload_file, files)
+
+                time.sleep(float(self.config.get(
+                    "s3", "s3upload_check_interval")))
+        except KeyboardInterrupt:
+            self.pool.terminate()
+            self.pool.join()
+        except Exception as exe:
+            self.logger.error("Unexpected error: " + str(exe))
+            self.logger.error(traceback.format_exc())
+            self.pool.terminate()
+            self.pool.join()
+        sys.exit(0)
+
+    def get_files(self, directory, extension):
+        ''' return a list of files in a directory recusively based on extension'''
+        file_list = []
+        for dirpath, _, files in os.walk(directory):
+            for filename in files:
+                fname = os.path.join(dirpath, filename)
+                filename, file_extension = os.path.splitext(fname)
+                if file_extension == extension:
+                    file_list.append(fname)
+        return file_list
