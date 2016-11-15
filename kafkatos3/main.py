@@ -152,7 +152,8 @@ URL: <{url}>
 
 def main(argv):
     '''main'''
-    Kafkatos3(argv=argv)
+    kaf = Kafkatos3(argv=argv)
+    kaf.execute()
 
 def entry_point():
     """Zero-argument entry point for use with setuptools/distribute."""
