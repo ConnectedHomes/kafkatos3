@@ -6,7 +6,9 @@ import time
 from collections import namedtuple
 import psutil
 
-from setproctitle import setproctitle, getproctitle # pylint: disable=E0611
+# pylint: disable=W0611
+# pylint: disable=E0611
+from setproctitle import setproctitle, getproctitle
 from kafkatos3.MessageArchiveKafka import MessageArchiveKafkaRecord, MessageArchiveKafkaReader,\
     MessageArchiveKafkaWriter
 
@@ -37,6 +39,7 @@ class BaseConsumer(object):
         '''override me'''
 
     def run(self):
+        '''Main class entrypoint'''
         nice_level = self.config.get("consumer", "consumer_nice_level")
         process = psutil.Process(os.getpid())
         process.nice(int(nice_level))
@@ -65,6 +68,7 @@ class BaseConsumer(object):
         self.consumer.commit()
 
     def process_message(self, message):
+        '''Process a single message returned from a kafka client'''
         self.message_processing = True
         key = message.topic + ':' + str(message.partition)
 
@@ -90,13 +94,14 @@ class BaseConsumer(object):
                 self.last_offset_warning_time = currenttime
                 return
             if message.offset > expected_offset:
-                self.logger.error("We have missing messages! topic: " + message.topic() + \
-                                  ", partition: " + str(message.partition()) + ", offset: " + \
-                                  str(message.offset()) + " (latest in file: " + \
+                self.logger.error("We have missing messages! topic: " + message.topic + \
+                                  ", partition: " + str(message.partition) + ", offset: " + \
+                                  str(message.offset) + " (latest in file: " + \
                                   str(expected_offset - 1) + ")")
 
+        self.logger.debug("Writing to "+key+" with key of "+message.key)
         part_info.writer.write_message(message.offset, message.key, message.value)
-        part_info = part_info._replace(offset=message.offset())
+        part_info = part_info._replace(offset=message.offset)
         self.partitions[key] = part_info
         self.check_for_rotation()
         self.message_processing = False
@@ -104,8 +109,8 @@ class BaseConsumer(object):
     def exit_gracefully(self, signum, frame):
         '''exit the consumer gracefully'''
         if not self.message_processing:
-            self.logger.info("Fast shutdown available ... exiting (signum %d, frame %d)" \
-                             % (signum, frame))
+            self.logger.info("Fast shutdown available ... exiting (signum %d)" \
+                             % (signum))
             self.logger.info("Print stack trace. Don't panic!")
             self.logger.info("-----------------------------------------------")
             for chunk in traceback.format_stack(frame):

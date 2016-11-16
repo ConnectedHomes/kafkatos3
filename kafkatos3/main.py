@@ -4,6 +4,9 @@
 
 from __future__ import print_function
 
+# pylint: disable=W0611
+# pylint: disable=E0611
+
 import os
 import sys
 import argparse
@@ -12,7 +15,7 @@ import signal
 import ConfigParser
 from multiprocessing import Process
 # This module seems to have some issues. pylint ignore them
-from setproctitle import setproctitle, getproctitle # pylint: disable=E0611
+from setproctitle import setproctitle, getproctitle
 
 from kafkatos3.metadata import authors, emails, project, version, url, description
 
@@ -37,27 +40,27 @@ class Kafkatos3(object):
         :type argv: :class:`list`
         """
 
-        def exit_gracefully(signum, frame):
+        def cb_exit_gracefully(signum, frame):
             '''exit gracefully callback based on signal'''
-            self.logger.info("Graceful shutdown of master process started signal %d, frame "\
-                             "%d...." % (signum, frame))
+            self.logger.info("Graceful shutdown of master process started signal %d "\
+                             % (signum))
             for process in self.processes:
                 process.terminate()
                 process.join()
             self.logger.info("Graceful shutdown of master process complete.")
             sys.exit(0)
 
-        def s3_process():
+        def cb_s3_process():
             '''s3 process callback'''
             s3uploader = S3Uploader(self.config, self.logger)
             s3uploader.run()
 
-        def compression_process():
+        def cb_compression_process():
             '''multiprocess callback'''
             mycompressor = Compressor(self.config, self.logger)
             mycompressor.run()
 
-        def consumer_process(consumer_id):
+        def cb_consumer_process(consumer_id):
             '''consumer process callback'''
             consumer_class_str = self.config.get("consumer", "consumer_class")
 
@@ -93,22 +96,23 @@ class Kafkatos3(object):
 
 
         for count in range(0, int(self.config.get("consumer", "consumer_processes"))):
-            process = Process(target=consumer_process, args=(str(count),))
+            process = Process(target=cb_consumer_process, name='Comsumer'+str(count), \
+                      args=(str(count),))
             process.start()
             self.processes.append(process)
 
-        process = Process(target=compression_process)
+        process = Process(target=cb_compression_process, name='Compressor')
         process.start()
         self.processes.append(process)
 
-        process = Process(target=s3_process)
+        process = Process(target=cb_s3_process, name='S3uploader')
         process.start()
         self.processes.append(process)
 
         setproctitle("[mainprocess] "+getproctitle())
 
-        signal.signal(signal.SIGINT, exit_gracefully)
-        signal.signal(signal.SIGTERM, exit_gracefully)
+        signal.signal(signal.SIGINT, cb_exit_gracefully)
+        signal.signal(signal.SIGTERM, cb_exit_gracefully)
 
         for process in self.processes:
             process.join()

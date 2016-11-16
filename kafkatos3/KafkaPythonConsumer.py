@@ -1,26 +1,21 @@
-'''Python consumer'''
-import traceback
-import time
-import os
+'''kafka Python consumer'''
 import signal
-import psutil
 
-from setproctitle import setproctitle, getproctitle # pylint: disable=E0611
+# pylint: disable=W0611
+# pylint: disable=E0611
+from setproctitle import setproctitle, getproctitle
 from kafka import KafkaConsumer
 from kafka.consumer.subscription_state import ConsumerRebalanceListener
-from kafka.structs import TopicPartition
-from kafkatos3.BaseConsumer import BaseConsumer,
-from kafkatos3.MessageArchiveKafka import MessageArchiveKafkaRecord, MessageArchiveKafkaReader,\
-                                MessageArchiveKafkaWriter
+from kafkatos3.BaseConsumer import BaseConsumer, MessageInfo
 
 
 class KafkaPythonConsumer(BaseConsumer, ConsumerRebalanceListener):
-
+    '''KafkaPythonConsumer'''
     def __init__(self, consumer_id, config, logger):
-        BaseConsumer.__init__(consumer_id, config, logger)
+        BaseConsumer.__init__(self, consumer_id, config, logger)
 
     def run_consumer(self):
-
+        '''core consumer code'''
         bootstrap_server = self.config.get('consumer', 'kafka_bootstrap')
         consumer_group = self.config.get('consumer', 'kafka_consumer_group')
 
@@ -42,13 +37,13 @@ class KafkaPythonConsumer(BaseConsumer, ConsumerRebalanceListener):
         signal.signal(signal.SIGINT, self.exit_gracefully)
         signal.signal(signal.SIGTERM, self.exit_gracefully)
 
-        while self.shutting_down == False:
+        while not self.shutting_down:
             for message in self.consumer:
 
                 consumer_message = MessageInfo(message.topic, message.partition, message.key,\
                                                message.value, message.offset)
                 self.process_message(consumer_message)
-                if self.shutting_down == True:
+                if self.shutting_down:
                     break
             self.check_for_rotation()
 
@@ -56,9 +51,5 @@ class KafkaPythonConsumer(BaseConsumer, ConsumerRebalanceListener):
             self.partitions[part].writer.close()
 
         self.logger.info("Graceful shutdown of consumer " +
-                            str(self.consumer_id) + " successful")
-    
-
-  
-
+                         str(self.consumer_id) + " successful")
   

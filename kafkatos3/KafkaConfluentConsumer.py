@@ -1,33 +1,28 @@
-
-
-import traceback
-from collections import namedtuple
-import time
-import os
-import sys
+'''Kafka confluent consumer. Dependant on librdkafka'''
 import signal
-import psutil
 
+# pylint: disable=W0611
 # pylint: disable=E0611
 from confluent_kafka import Consumer, KafkaError
 from setproctitle import setproctitle, getproctitle
-from kafkatos3.BaseConsumer import BaseConsumer,MessageInfo
-from kafkatos3.MessageArchiveKafka import MessageArchiveKafkaRecord, MessageArchiveKafkaReader,\
-    MessageArchiveKafkaWriter
+from kafkatos3.BaseConsumer import BaseConsumer, MessageInfo
 
 class KafkaConfluentConsumer(BaseConsumer):
 
     '''Kafka confluent consuemr'''
 
     def __init__(self, consumer_id, config, logger):
-        BaseConsumer.__init__(consumer_id, config, logger)
+        BaseConsumer.__init__(self, consumer_id, config, logger)
 
     def run_consumer(self):
+        '''core consumer code'''
 
-        def on_assign(consumer, partitions):
+        def cb_on_assign(consumer, partitions):
+            '''topic on assign callback'''
             self.on_partitions_assigned(partitions)
 
-        def on_revoke(consumer, partitions):
+        def cb_on_revoke(consumer, partitions):
+            '''topic on revoke callback'''
             self.on_partitions_revoked(partitions)
 
         offset_reset = self.config.get(
@@ -46,7 +41,7 @@ class KafkaConfluentConsumer(BaseConsumer):
         self.logger.info("Topic list is " + topic_whitelist)
 
         self.consumer.subscribe(topic_whitelist.split(
-            ","), on_assign=on_assign, on_revoke=on_revoke)
+            ","), on_assign=cb_on_assign, on_revoke=cb_on_revoke)
 
         self.logger.info("Consumer " + self.consumer_id + " starting.... ")
 

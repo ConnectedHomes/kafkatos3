@@ -253,8 +253,10 @@ class DataFileWriter(object):
             self.file_handle = open(self.filename, 'r+b')
         else:
             self.file_handle = open(self.filename, 'wb')
-        if not portalocker.lock(self.file_handle, portalocker.LOCK_EX | portalocker.LOCK_NB):
-            raise "Unable to get lock on file " + self.filename
+        try:
+            portalocker.lock(self.file_handle, portalocker.LOCK_EX | portalocker.LOCK_NB)
+        except portalocker.LockException as exp:
+            raise exp
 
     def write_int(self, number):
         '''Write a 64 bit integer to the file'''
