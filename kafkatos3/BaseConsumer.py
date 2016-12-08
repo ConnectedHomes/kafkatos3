@@ -99,7 +99,6 @@ class BaseConsumer(object):
                                   str(message.offset) + " (latest in file: " + \
                                   str(expected_offset - 1) + ")")
 
-        self.logger.debug("Writing to "+key+" with key of "+message.key)
         part_info.writer.write_message(message.offset, message.key, message.value)
         part_info = part_info._replace(offset=message.offset)
         self.partitions[key] = part_info
