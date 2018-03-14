@@ -17,6 +17,7 @@ from kafkatos3.metadata import project, version
 PartitionInfo = namedtuple("PartitionInfo",
                            ["header", "writer", "offset"])
 
+
 def get_files(directory, extension):
     '''return a list of all files in a partition directory with a passed in extension'''
     file_list = []
@@ -27,6 +28,7 @@ def get_files(directory, extension):
             if file_extension == extension:
                 file_list.append(fname)
     return file_list
+
 
 def mkdirp(directory):
     '''equiv of a mkdir -p'''
@@ -39,9 +41,9 @@ def rotate_partition(partitions, partition, working_dir):
     work_dir = os.path.join(working_dir, "data")
 
     if int(partitions[partition].offset) == int(partitions[partition].header.get_start_offset()):
-        print "Skiping rotate for partition " + partition + ". No new writes"
+        print("Skipping rotate for partition " + partition + ". No new writes")
         return
-    print "I need to rotate " + partition
+    print("I need to rotate " + partition)
     partitions[partition].writer.close()
 
     start_offset = partitions[partition].header.get_start_offset()
@@ -56,10 +58,10 @@ def rotate_partition(partitions, partition, working_dir):
     dest_filename = os.path.join(dest_dir, topic + "-" + str(part_number) + "_" + str(
         start_offset) + "-" + str(end_offset) + "_" + date + ".mak")
 
-    print "mkdir " + dest_dir
+    print("mkdir " + dest_dir)
     mkdirp(dest_dir)
 
-    print "rename " + partitions[partition].writer.get_filename() + " " + dest_filename
+    print("rename " + partitions[partition].writer.get_filename() + " " + dest_filename)
     os.rename(partitions[partition].writer.get_filename(), dest_filename)
 
 
@@ -91,8 +93,8 @@ def main(argv):
 
             match = re.search(r"([^\/]+)\/([^\/]+)/", stripped_filename)
 
-            print "topic is " + match.group(1)
-            print "partition is " + match.group(2)
+            print("topic is " + match.group(1))
+            print("partition is " + match.group(2))
 
             key = match.group(1) + ":" + str(match.group(2))
 
@@ -105,9 +107,9 @@ def main(argv):
             part_info = PartitionInfo(
                 header=header, writer=bmw, offset=last_offset)
             partitions[key] = part_info
-        except Exception as exe: # pylint: disable=W0703
-            print "Problem processing file [" + filename + "]: " + str(exe)
-            print traceback.format_exc()
+        except Exception as exe:  # pylint: disable=W0703
+            print("Problem processing file [" + filename + "]: " + str(exe))
+            print(traceback.format_exc())
 
     for partition in partitions:
         rotate_partition(partitions, partition, working_dir)

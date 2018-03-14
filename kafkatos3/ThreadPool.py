@@ -3,6 +3,7 @@ Module taken from:
 https://www.metachris.com/2016/04/python-threadpool/ 
 '''
 import sys
+
 IS_PY2 = sys.version_info < (3, 0)
 
 if IS_PY2:
@@ -15,6 +16,7 @@ from threading import Thread
 
 class Worker(Thread):
     """ Thread executing tasks from a given tasks queue """
+
     def __init__(self, tasks):
         Thread.__init__(self)
         self.tasks = tasks
@@ -28,7 +30,7 @@ class Worker(Thread):
                 func(*args, **kargs)
             except Exception as exc:
                 # An exception happened in this thread
-                print str(exc)
+                print(str(exc))
             finally:
                 # Mark this task as done, whether an exception happened or not
                 self.tasks.task_done()
@@ -36,6 +38,7 @@ class Worker(Thread):
 
 class ThreadPool(object):
     """ Pool of threads consuming tasks from a queue """
+
     def __init__(self, num_threads):
         self.tasks = Queue(num_threads)
         for _ in range(num_threads):
@@ -59,10 +62,12 @@ if __name__ == "__main__":
     from random import randrange
     from time import sleep
 
+
     # Function to be executed in a thread
     def wait_delay(d):
         print("sleeping for (%d)sec" % d)
         sleep(d)
+
 
     # Generate random delays
     delays = [randrange(3, 7) for i in range(50)]

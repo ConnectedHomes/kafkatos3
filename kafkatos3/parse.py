@@ -4,6 +4,7 @@ import argparse
 import sys
 from kafkatos3.MessageArchiveKafka import MessageArchiveKafkaReader
 
+
 def main(argv):
     '''main'''
     parser = argparse.ArgumentParser(
@@ -16,19 +17,21 @@ def main(argv):
 
     header = makfile.get_header()
 
-    print "File topic is " + header.get_topic()
-    print "File parition is " + str(header.get_partition())
-    print "Staring offset is " + str(header.get_start_offset())
-    print "File created at " + str(header.get_starttime())
+    print("File topic is " + header.get_topic())
+    print("File partition is " + str(header.get_partition()))
+    print("Staring offset is " + str(header.get_start_offset()))
+    print("File created at " + str(header.get_starttime()))
 
     while makfile.has_more_messages():
         message = makfile.read_message()
-        print "Processing message with offset: " + str(message.offset) + ", key: " + message.key +\
-              ", value: " + message.value
+        print("Processing message with offset: " + str(
+            message.offset) + ", key: " + message.key + ", value: " + message.value)
+
 
 def entry_point():
     """Zero-argument entry point for use with setuptools/distribute."""
     raise SystemExit(main(sys.argv))
+
 
 if __name__ == '__main__':
     entry_point()
